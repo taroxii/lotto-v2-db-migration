@@ -168,11 +168,35 @@ backend/batch ดึง migration ผ่าน **container image** (ไม่ใ
 ### E. Engine bookkeeping
 `schema_migrations` (go-migrate), `databasechangelog` + `databasechangeloglock` (Liquibase — หลัง cutover freeze)
 
-## Open Questions (เหลือ — critical ต่อ baseline)
-1. **go-migrate v4 ที่หายไป** — stg อยู่ version 4 แต่ repo มีแค่ 000001/000002. ต้องหา/reconstruct migration 3,4 (อาจอยู่ branch อื่น หรือรันมือ) — ดึง DDL จริงจาก stg snapshot มาเขียน
-2. **Liquibase 0012/0013 ที่ไม่มีใน repo** — `0012-add-lotto-n3-item-order`, `0013-fix-id-fk-column-types-to-bigint` (author=hermes). ต้องหา YAML ต้นฉบับ หรือ reverse จาก stg schema
-3. **md5sum ของ Liquibase** — ถ้า freeze Liquibase ต้องมั่นใจ schema ตรง ไม่งั้น validate/checksum fail ตอน transition
-4. baseline version number — go-migrate เริ่มนับต่อจาก 4 หรือ renumber ใหม่ทั้งชุด (กระทบ force baseline)
+## Implementation Status — ✅ BASELINE DONE + VERIFIED (2026-09-30)
+
+Repo สร้างเสร็จ + verified จริง, pushed to `main` (commit aa050ae).
+
+**7 migrations (go-migrate เดียว, Liquibase หายไปจากภาพ):**
+| ver | domain | ที่มา |
+|-----|--------|-------|
+| 000001-002 | core | lotto-apiv2 |
+| 000003-004 | N3 game/period/orders | **กู้จาก git stash** (branch fix/n3-single-game-active-period, commit 0826a60 — untracked ไม่เคย commit) |
+| 000005 | reward prize_result chain + partial unique index กัน double-pay | reverse จาก stg (Liquibase 0001-0013) |
+| 000006 | admin(uuid, แทน admins)/huay_configuration/lotto_n3_item_order/lotto_reward/reward_items/user_invite | reverse จาก stg |
+| 000007 | reconcile thai_lottery_configuration (drop assets_name) | diff vs stg |
+
+**Verified บน Postgres 18 เปล่า:**
+- ✅ migrate up ครบ 7 version
+- ✅ idempotent (up ซ้ำ = "no change")
+- ✅ **schema ตรง lotto_stg 100% — 22/22 domain tables, ทุก column ทุก type**
+
+**go-migrate vs Liquibase — ตอบแล้ว: go-migrate เดียว**
+- `ddl-auto=validate` เป็นของ Hibernate ไม่ใช่ Liquibase → validate schema จริงใน DB เทียบ entity → **ไม่สนว่า engine ไหน migrate → go-migrate support เต็มที่**
+- `databasechangelog`/`databasechangeloglock` = ซาก Liquibase (enabled=false ไม่อ่านตอน boot) → หลัง cutover ปล่อยทิ้งได้ ไม่กระทบ batch boot (แก้ที่เคยเตือนผิดในรอบก่อน: ลบ changelog ได้ ไม่พัง; ที่ห้ามแตะคือ **ตาราง domain** ที่มี data)
+
+**Baseline stg (data-safe, "mark as applied เฉยๆ"):** ทุก migration = `IF NOT EXISTS` + down=no-op → `migrate force 7` บน stg = เขียน schema_migrations.version=7 ไม่รัน DDL ไม่แตะ data
+
+## Open Questions (เหลือ — ก่อนรัน cutover จริงบน stg)
+1. **md5sum/Liquibase coexist** — ช่วง transition stg ยังมี databasechangelog อยู่; ยืนยันว่าจะ freeze (ปล่อยทิ้ง) หรือ drop 2 ตาราง bookkeeping ทีหลัง
+2. **รัน `migrate force 7` บน stg เมื่อไหร่** — ต้อง backup schema_migrations/databasechangelog ก่อน (ask-first: แตะ DB มี data)
+3. **wire initContainer เข้า backend/reward_batch deploy** — เมื่อ cutover (แยก PR ที่ repo นั้น ๆ)
+4. **down ของ 000001/000002** — ปัจจุบัน down-all พังเพราะ users ถูก user_invite FK ผูก (forward-only baseline ไม่ teardown prod จึงไม่ critical; ถ้าจะให้ CI down-all ผ่าน ต้องแก้ down 000001/000002 ให้ drop ตามลำดับ FK)
 
 ## Evidence / File References (2026-09-30)
 - backend go-migrate: `lotto-apiv2/db/migrations/000001_init.up.sql` (CREATE TABLE L6/25/37/58/70/84/102), `000002_add_index`, `dd/` ซ้ำ; `testutil/migration.go` เรียก golang-migrate CLI; ไม่มี AutoMigrate
