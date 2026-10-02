@@ -1,0 +1,14 @@
+-- 000004_baseline_lotto_n3_schema.down.sql
+--
+-- Intentionally a NO-OP.
+--
+-- 000004 is a BASELINE that adopts pre-existing, data-bearing tables into the
+-- migration history. These tables:
+--   * contain live order/game data on staging, and
+--   * are referenced by reward_batch (Liquibase) via FK
+--     (e.g. lotto_draw_prize_result.n3_orders_id -> n3_orders.id).
+--
+-- Dropping them here would destroy real data and break cross-service FKs owned by
+-- the batch. A baseline rollback must therefore NOT drop the tables. If a true
+-- teardown is ever required, do it deliberately in a dedicated, reviewed migration.
+SELECT 1;

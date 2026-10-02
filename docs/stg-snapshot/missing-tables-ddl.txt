@@ -1,0 +1,104 @@
+
+===== admin =====
+--COLUMNS--
+id|uuid||NO|
+username|character varying||YES|
+password|character varying||YES|
+created_at|timestamp without time zone||YES|
+updated_at|timestamp without time zone||YES|
+deleted_at|timestamp without time zone||YES|
+--PK--
+id
+--IDX--
+admin_pk := CREATE UNIQUE INDEX admin_pk ON public.admin USING btree (id)
+admin_un := CREATE UNIQUE INDEX admin_un ON public.admin USING btree (username)
+admin_id_idx := CREATE INDEX admin_id_idx ON public.admin USING btree (id, username)
+--FK--
+
+===== huay_configuration =====
+--COLUMNS--
+id|integer||YES|
+code|character varying||YES|
+restrict|json||YES|
+prize_three_multiple|integer||YES|
+prize_two_top|integer||YES|
+prize_two_bottom|integer||YES|
+prize_top_running_number|integer||YES|
+open_date_time|timestamp without time zone||YES|
+close_date_time|timestamp without time zone||YES|
+prize_three_top|integer||YES|
+prize_fourth_top|integer||YES|
+reward|json||YES|
+--PK--
+--IDX--
+--FK--
+
+===== lotto_n3_item_order =====
+--COLUMNS--
+id|uuid||NO|
+game_id|bigint||NO|
+period_id|bigint||NO|
+bet_number|character varying|10|NO|
+bet_type|character varying|50|NO|
+amount|numeric||NO|
+status|character varying|50|YES|
+user_id|bigint||YES|
+created_at|timestamp without time zone||NO|now()
+updated_at|timestamp without time zone||YES|
+--PK--
+id
+--IDX--
+lotto_n3_item_order_pkey := CREATE UNIQUE INDEX lotto_n3_item_order_pkey ON public.lotto_n3_item_order USING btree (id)
+idx_lotto_n3_item_order_game_period := CREATE INDEX idx_lotto_n3_item_order_game_period ON public.lotto_n3_item_order USING btree (game_id, period_id)
+--FK--
+
+===== lotto_reward =====
+--COLUMNS--
+type|character varying||NO|
+reward|integer||NO|
+config_id|integer||NO|
+id|integer||NO|nextval('lotto_reward_id_seq1'::regclass)
+number|character varying||NO|
+description|character varying||NO|
+description_th|character varying||YES|
+created_at|timestamp without time zone||YES|
+updated_at|timestamp without time zone||YES|
+date|date||YES|
+name|character varying||YES|
+--PK--
+id
+--IDX--
+lotto_reward_pk := CREATE UNIQUE INDEX lotto_reward_pk ON public.lotto_reward USING btree (id)
+lotto_reward_id_idx := CREATE UNIQUE INDEX lotto_reward_id_idx ON public.lotto_reward USING btree (id)
+lotto_reward_reward_idx := CREATE INDEX lotto_reward_reward_idx ON public.lotto_reward USING btree (reward)
+--FK--
+
+===== reward_items =====
+--COLUMNS--
+id|integer||NO|nextval('items_reward_id_seq'::regclass)
+description|character varying||NO|
+number|character varying||NO|
+total_reward|integer||NO|
+description_th|character varying||YES|
+is_claim|boolean||YES|
+order_item_id|integer||NO|
+created_at|timestamp without time zone||YES|
+updated_at|timestamp without time zone||YES|
+--PK--
+id
+--IDX--
+items_reward_pk := CREATE UNIQUE INDEX items_reward_pk ON public.reward_items USING btree (id)
+--FK--
+
+===== user_invite =====
+--COLUMNS--
+user_id|integer||YES|
+invite_link|character varying||YES|
+credit_usage|integer||YES|
+redeem|boolean||YES|
+--PK--
+--IDX--
+user_invite_un := CREATE UNIQUE INDEX user_invite_un ON public.user_invite USING btree (invite_link, user_id)
+--FK--
+user_invite_fk := FOREIGN KEY (user_id) REFERENCES users(id)
+user_invite_fk_invkey := FOREIGN KEY (invite_link) REFERENCES users(invite_link) ON UPDATE CASCADE ON DELETE CASCADE

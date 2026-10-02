@@ -1,0 +1,13 @@
+-- 000005_reward_baseline.down.sql
+--
+-- Intentionally a NO-OP.
+--
+-- 000005 is a BASELINE that adopts pre-existing, data-bearing reward tables into
+-- the migration history. These tables contain live settlement/prize data on
+-- staging and hold cross-service foreign keys
+-- (lotto_draw_prize_result.n3_orders_id -> n3_orders.id).
+--
+-- Dropping them here would destroy real data and break the auto-settlement audit
+-- trail. A baseline rollback must therefore NOT drop the tables. If a true
+-- teardown is ever required, do it deliberately in a dedicated, reviewed migration.
+SELECT 1;
